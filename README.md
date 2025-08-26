@@ -24,8 +24,8 @@ To create a runnable jar for a platform different from your current platform, us
 The openrndr-template depends on various packages including the core [openrndr](https://github.com/openrndr/openrndr/) and the [orx](https://github.com/openrndr/orx/) extensions. The version numbers of these dependencies are specified in your [libs.versions.toml](gradle/libs.versions.toml) file. Learn more about this file in the [Gradle documentation](https://docs.gradle.org/current/userguide/platforms.html#sub:conventional-dependencies-toml) website.
 
 Newer versions of OPENRNDR and ORX bring useful features and bug fixes. The most recent versions are
-<br>![openrndr version](https://maven-badges.herokuapp.com/maven-central/org.openrndr/openrndr-application/badge.svg) for OPENRNDR. 
-<br>![orx version](https://maven-badges.herokuapp.com/maven-central/org.openrndr.extra/orx-parameters-jvm/badge.svg) for ORX.
+![Maven Central Version](https://img.shields.io/maven-central/v/org.openrndr/openrndr-math-jvm?label=OPENRNDR&color=%23FFC0CB) 
+![Maven Central Version](https://img.shields.io/maven-central/v/org.openrndr.extra/orx-noise-jvm?label=ORX&color=%23FFC0CB).
 
 Switch to the [next-version branch](https://github.com/openrndr/openrndr-template/tree/next-version) or enter these versions manually in your toml file. They can look like "0.4.3" or "0.4.3-alpha4". Use the complete string, as in:
 
