@@ -29,10 +29,10 @@ provides the optional [orsl](https://github.com/openrndr/orsl/) shader helper mo
 The version numbers of these dependencies are specified in your [libs.versions.toml](gradle/libs.versions.toml) file. 
 Learn more about this file in the [Gradle documentation](https://docs.gradle.org/current/userguide/platforms.html#sub:conventional-dependencies-toml) website.
 
-Newer versions bring useful features and bug fixes. The most recent versions are
-<br>![openrndr version](https://maven-badges.herokuapp.com/maven-central/org.openrndr/openrndr-application/badge.svg) for OPENRNDR. 
-<br>![orx version](https://maven-badges.herokuapp.com/maven-central/org.openrndr.extra/orx-parameters-jvm/badge.svg) for ORX.
-<br>![orsl version](https://maven-badges.herokuapp.com/maven-central/org.openrndr.orsl/orsl-shader-generator-jvm/badge.svg) for ORSL.
+Newer versions bring useful features and bug fixes. The most recent versions are<br>
+![Maven Central Version](https://img.shields.io/maven-central/v/org.openrndr/openrndr-math-jvm?label=OPENRNDR&color=%23FFC0CB) 
+![Maven Central Version](https://img.shields.io/maven-central/v/org.openrndr.extra/orx-noise-jvm?label=ORX&color=%23FFC0CB)
+![Maven Central Version](https://img.shields.io/maven-central/v/org.openrndr.orsl/orsl-shader-generator-jvm?label=ORSL&color=%23FFC0CB).
 
 Switch to the [next-version branch](https://github.com/openrndr/openrndr-template/tree/next-version) or enter these versions manually in your toml file. 
 They can look like "0.4.3" or "0.4.3-alpha4". Use the complete string, as in:
