@@ -11,6 +11,7 @@ val applicationMainClass = "TemplateProgramKt"
 
 /**  ## additional ORX features to be added to this project */
 val orxFeatures = setOf<String>(
+//  "orx-axidraw",
 //  "orx-boofcv",
     "orx-camera",
 //  "orx-chataigne",
@@ -139,14 +140,8 @@ dependencies {
     implementation(libs.kotlin.logging)
 
     when (applicationLogging) {
-        Logging.NONE -> {
-            runtimeOnly(libs.slf4j.nop)
-        }
-
-        Logging.SIMPLE -> {
-            runtimeOnly(libs.slf4j.simple)
-        }
-
+        Logging.NONE -> runtimeOnly(libs.slf4j.nop)
+        Logging.SIMPLE -> runtimeOnly(libs.slf4j.simple)
         Logging.FULL -> {
             runtimeOnly(libs.log4j.slf4j2)
             runtimeOnly(libs.log4j.core)
@@ -197,6 +192,11 @@ tasks {
             exclude(dependency("org.bytedeco:.*"))
         }
     }
+}
+
+// ------------------------------------------------------------------------------------------------------------------ //
+
+tasks {
     named<org.beryx.runtime.JPackageTask>("jpackage") {
         doLast {
             val destPath = if (OperatingSystem.current().isMacOsX)
@@ -205,26 +205,20 @@ tasks {
                 "build/jpackage/openrndr-application/data"
 
             copy {
-                from("data") {
-                    include("**/*")
-                }
+                from("data") { include("**/*") }
                 into(destPath)
             }
         }
     }
-}
 
-// ------------------------------------------------------------------------------------------------------------------ //
-
-tasks.register<Zip>("jpackageZip") {
-    archiveFileName = "openrndr-application.zip"
-    from("${layout.buildDirectory.get()}/jpackage") {
-        include("**/*")
+    register<Zip>("jpackageZip") {
+        archiveFileName = "openrndr-application.zip"
+        from("${layout.buildDirectory.get()}/jpackage") {
+            include("**/*")
+        }
+        dependsOn("jpackage")
     }
 }
-tasks.findByName("jpackageZip")?.dependsOn("jpackage")
-
-// ------------------------------------------------------------------------------------------------------------------ //
 
 runtime {
     jpackage {
@@ -241,8 +235,10 @@ runtime {
 
 // ------------------------------------------------------------------------------------------------------------------ //
 
-tasks.register<org.openrndr.extra.gitarchiver.GitArchiveToMarkdown>("gitArchiveToMarkDown") {
-    historySize = 20
+tasks {
+    register<org.openrndr.extra.gitarchiver.GitArchiveToMarkdown>("gitArchiveToMarkDown") {
+        historySize = 20
+    }
 }
 
 // ------------------------------------------------------------------------------------------------------------------ //
@@ -253,9 +249,7 @@ tasks {
 
         val nonStableKeywords = listOf("alpha", "beta", "rc")
 
-        fun isNonStable(
-            version: String
-        ) = nonStableKeywords.any {
+        fun isNonStable(version: String) = nonStableKeywords.any {
             version.lowercase().contains(it)
         }
 
