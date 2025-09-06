@@ -7,13 +7,16 @@ go-to starting point for writing OPENRNDR-based software.
 
 If you are looking at this from IntelliJ IDEA you can start by expanding the _project_ tab on the left. You will find a template program in `src/main/kotlin/TemplateProgram.kt` and a live-coding example in `src/main/kotlin/TemplateLiveProgram.kt`.
 
-You will find some [basic instructions](https://guide.openrndr.org/setUpYourFirstProgram.html) in the [OPENRNDR guide](https://guide.openrndr.org)
+You will find some [basic instructions](https://guide.openrndr.org/setUpYourFirstProgram.html) in the [OPENRNDR guide](https://guide.openrndr.org).
 
 ## Gradle tasks
 
- - `./gradlew run` runs the TemplateProgram (Use `gradlew.bat run` under Windows)
+ - `./gradlew run` runs `TemplateProgram.kt` (Use `gradlew.bat run` under Windows)
+ - `./gradlew run -Popenrndr.application=MyProgramKt` runs `src/main/kotlin/myProgram.kt`
+ - `./gradlew run -Popenrndr.application=foo.bar.MyProgramKt` runs `src/main/kotlin/foo/bar/myProgram.kt` (assuming `package foo.bar` is used in myProgram.kt)
  - `./gradlew shadowJar` creates an executable platform specific jar file with all dependencies. Run the resulting program by typing `java -jar build/libs/openrndr-template-1.0.0-all.jar` in a terminal from the project root. If your project contains multiple `main` methods, specify which one to run with `java -cp build/libs/openrndr-template-1.0.0-all.jar MyProgramKt`, where `MyProgramKt` can also be `foo.bar.MyProgramKt` if it's in the package `foo.bar`.
- - `./gradlew jpackageZip` creates a zip with a stand-alone executable for the current platform (works with Java 14 only)
+ - `./gradlew jpackageZip` creates a zip with a stand-alone executable for the current platform (works with Java 14 only). Run it like this: `cd build/jpackage/openrndr-application/ && bin/openrndr-application`.
+ - `./gradlew dependencyUpydates` checks whether any dependencies have newer versions.
 
 ## Cross builds
 
@@ -21,32 +24,26 @@ To create a runnable jar for a platform different from your current platform, us
 
 ## Updating OPENRNDR, ORX and other dependencies
 
-The openrndr-template depends on various packages including the core [openrndr](https://github.com/openrndr/openrndr/) and the [orx](https://github.com/openrndr/orx/) extensions. The version numbers of these dependencies are specified in your [libs.versions.toml](gradle/libs.versions.toml) file. Learn more about this file in the [Gradle documentation](https://docs.gradle.org/current/userguide/platforms.html#sub:conventional-dependencies-toml) website.
+The openrndr-template depends on various packages including the core [openrndr](https://github.com/openrndr/openrndr/) and the [orx](https://github.com/openrndr/orx/) extensions and
+provides the optional [orsl](https://github.com/openrndr/orsl/) shader helper modules.
+The version numbers of these dependencies are specified in your [libs.versions.toml](gradle/libs.versions.toml) file. 
+Learn more about this file in the [Gradle documentation](https://docs.gradle.org/current/userguide/platforms.html#sub:conventional-dependencies-toml) website.
 
-Newer versions of OPENRNDR and ORX bring useful features and bug fixes. The most recent versions are
+Newer versions bring useful features and bug fixes. The most recent versions are<br>
 ![Maven Central Version](https://img.shields.io/maven-central/v/org.openrndr/openrndr-math-jvm?label=OPENRNDR&color=%23FFC0CB) 
-![Maven Central Version](https://img.shields.io/maven-central/v/org.openrndr.extra/orx-noise-jvm?label=ORX&color=%23FFC0CB).
+![Maven Central Version](https://img.shields.io/maven-central/v/org.openrndr.extra/orx-noise-jvm?label=ORX&color=%23FFC0CB)
+![Maven Central Version](https://img.shields.io/maven-central/v/org.openrndr.orsl/orsl-shader-generator-jvm?label=ORSL&color=%23FFC0CB).
 
-Switch to the [next-version branch](https://github.com/openrndr/openrndr-template/tree/next-version) or enter these versions manually in your toml file. They can look like "0.4.3" or "0.4.3-alpha4". Use the complete string, as in:
+Switch to the [next-version branch](https://github.com/openrndr/openrndr-template/tree/next-version) or enter these versions manually in your toml file. 
+They can look like "0.4.3" or "0.4.3-alpha4". Use the complete string, as in:
 
-    openrndr = "0.4.3-alpha4"
-        orx = "0.4.3-alpha4"
+    openrndr = "0.4.5-alpha5"
+         orx = "0.4.5-alpha5"
+        orsl = "0.4.5-alpha5"
 
 You can add other dependencies needed by your project to your [build.gradle.kts](build.gradle.kts) file, inside the `dependencies { }` block. 
 
 ⚠️ Remember to reload the Gradle configuration after changing any dependencies.
-
-## Run other Kotlin programs from the command line
-
-By default `./gradlew run` runs a program called `TemplateProgram.kt` but a different one can be provided as an argument:
-
-To run `src/main/kotlin/myProgram.kt`
-
-    ./gradlew run -Popenrndr.application=MyProgramKt
-
-To run `src/main/kotlin/foo/bar/myProgram.kt` (assuming `package foo.bar` in myProgram.kt)
-
-    ./gradlew run -Popenrndr.application=foo.bar.MyProgramKt
 
 ## Github Actions
 
