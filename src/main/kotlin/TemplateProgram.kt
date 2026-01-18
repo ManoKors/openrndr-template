@@ -78,20 +78,22 @@ fun main() = application {
             // Zeit für Meer-Bewegung (langsamer für smooth)
             val time = seconds * waveSpeed
 
-            // Tastensteuerung für Mute und Templates
+            // Tastensteuerung für Mute und Templates und Einstellungen
             keyboard.keyDown.listen {
-                if (it.name == "m" || it.name == "M") {
-                    if (isMuted) {
-                        player.unmute()
-                        isMuted = false
-                    } else {
-                        player.mute()
-                        isMuted = true
+                when (it.name) {
+                    "m", "M" -> {
+                        isMuted = !isMuted
+                        if (isMuted) player.mute() else player.unmute()
                     }
-                } else if (it.name == "1") {
-                    currentTemplate = "Wave"
-                } else if (it.name == "2") {
-                    currentTemplate = "Circles"
+                    "1" -> currentTemplate = "Wave"
+                    "2" -> currentTemplate = "Circles"
+                    // Einstellungen für Wave
+                    "q" -> waveSpeed = (waveSpeed + 0.1).coerceAtMost(2.0)
+                    "a" -> waveSpeed = (waveSpeed - 0.1).coerceAtLeast(0.1)
+                    "w" -> waveScale = (waveScale + 5.0).coerceAtMost(50.0)
+                    "s" -> waveScale = (waveScale - 5.0).coerceAtLeast(5.0)
+                    "e" -> bassMultiplier = (bassMultiplier + 0.01).coerceAtMost(0.1)
+                    "d" -> bassMultiplier = (bassMultiplier - 0.01).coerceAtLeast(0.001)
                 }
             }
 
@@ -225,6 +227,16 @@ fun main() = application {
             // --- 5. FINALE AUSGABE ---
             drawer.defaults()
             drawer.image(mainTarget.colorBuffer(0))
+
+            // Einstellungen Anzeige
+            drawer.fill = ColorRGBa.WHITE
+            drawer.text("Template: $currentTemplate", 10.0, 20.0)
+            if (currentTemplate == "Wave") {
+                drawer.text("Wave Speed: ${"%.1f".format(waveSpeed)} (Q/A)", 10.0, 40.0)
+                drawer.text("Wave Scale: ${"%.0f".format(waveScale)} (W/S)", 10.0, 60.0)
+                drawer.text("Bass Multiplier: ${"%.3f".format(bassMultiplier)} (E/D)", 10.0, 80.0)
+            }
+            drawer.text("Mute: $isMuted (M)", 10.0, 100.0)
         }
     }
 }
