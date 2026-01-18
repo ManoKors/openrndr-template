@@ -69,8 +69,8 @@ fun main() = application {
             // Bass Energie berechnen (0 - 150Hz)
             val bass = fft.calcAvg(0f, 150f) * 10.0
             
-            // Zeit für Meer-Bewegung
-            val time = seconds * 0.8
+            // Zeit für Meer-Bewegung (langsamer für smooth)
+            val time = seconds * 0.4
 
             // Tastensteuerung für Mute
             keyboard.keyDown.listen {
