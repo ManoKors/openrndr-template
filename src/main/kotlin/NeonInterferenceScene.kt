@@ -4,7 +4,7 @@ import org.openrndr.math.Vector2
 import kotlin.math.cos
 import kotlin.math.sin
 
-class InterferenceScene {
+class NeonInterferenceScene : Scene() {
     // Farben definieren
     private val colorStart = ColorRGBa.fromHex("00FF41") // Neon Grün
     private val colorEnd = ColorRGBa.fromHex("EBFF00")   // Neon Gelb
@@ -13,7 +13,7 @@ class InterferenceScene {
     var lineCount = 60 // Anzahl der Linien
     var lineWeight = 1.0 // Noch dicker
     
-    fun draw(drawer: Drawer, time: Double, bassEnergy: Double, width: Int, height: Int) {
+    override fun draw(drawer: Drawer, time: Double, bassEnergy: Double, width: Int, height: Int) {
         drawer.strokeWeight = lineWeight
         drawer.fill = null // Keine Füllung, nur Linien
 

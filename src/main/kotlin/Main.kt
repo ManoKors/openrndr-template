@@ -2,6 +2,11 @@ import org.openrndr.application
 import org.openrndr.color.ColorRGBa
 import org.openrndr.draw.*
 import org.openrndr.extra.fx.blur.Bloom
+import Scene
+
+class Settings {
+    var sceneName = "neon interference"
+}
 
 fun main() = application {
     configure {
@@ -12,11 +17,16 @@ fun main() = application {
     }
 
     program {
+        val settings = Settings() // Für zukünftige GUI
+
         // Module initialisieren
         val audio = AudioEngine()
         audio.setup(this)
 
-        val scene = InterferenceScene()
+        val scene: Scene = when (settings.sceneName) {
+            "neon interference" -> NeonInterferenceScene()
+            else -> NeonInterferenceScene() // Default
+        }
 
         // Grafik-Setup
         val bloom = Bloom().apply {
@@ -50,6 +60,8 @@ fun main() = application {
             // 3. Post-Processing (Bloom) & Ausgabe auf Screen
             // bloom.apply(offscreen.colorBuffer(0), offscreen.colorBuffer(0))
             drawer.image(offscreen.colorBuffer(0))
+
+            // GUI kann später hinzugefügt werden
         }
     }
 }
