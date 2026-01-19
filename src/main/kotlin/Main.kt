@@ -5,7 +5,7 @@ import org.openrndr.extra.fx.blur.Bloom
 import Scene
 
 class Settings {
-    var sceneName = "tunnel"
+    var sceneName = "mandala"
 }
 
 fun main() = application {
@@ -25,8 +25,8 @@ fun main() = application {
 
         val scene: Scene = when (settings.sceneName) {
             "neon interference" -> NeonInterferenceScene()
-            "tunnel" -> TunnelScene()
-            else -> TunnelScene() // Default
+            "mandala" -> MandalaScene()
+            else -> MandalaScene() // Default
         }
 
         // Grafik-Setup
