@@ -5,9 +5,31 @@ import kotlin.math.cos
 import kotlin.math.sin
 
 class NeonInterferenceScene : Scene() {
-    // Farben definieren
-    private val colorStart = ColorRGBa.fromHex("00FF41") // Neon Grün
-    private val colorEnd = ColorRGBa.fromHex("EBFF00")   // Neon Gelb
+    // Liste von Farben, die zufällig aktiviert werden
+    private val colors = listOf(
+        ColorRGBa.fromHex("00FF41"), // Neon Grün
+        ColorRGBa.fromHex("EBFF00"), // Neon Gelb
+        ColorRGBa.fromHex("FF0080"), // Neon Pink
+        ColorRGBa.fromHex("00FFFF"), // Cyan
+        ColorRGBa.fromHex("FF8000"), // Orange
+        ColorRGBa.fromHex("8000FF")  // Lila
+    )
+
+    private fun getColorStart(time: Double): ColorRGBa {
+        val period = 5.0 // Zeit für einen kompletten Übergang
+        val t = (time / period) % 1.0 // 0 bis 1 für Interpolation
+        val index = (time / period).toInt() % colors.size
+        val nextIndex = (index + 1) % colors.size
+        return colors[index].mix(colors[nextIndex], t)
+    }
+
+    private fun getColorEnd(time: Double): ColorRGBa {
+        val period = 5.0
+        val t = ((time / period) + 0.5) % 1.0 // Versetzt für Variation
+        val index = ((time / period) + 0.5).toInt() % colors.size
+        val nextIndex = (index + 1) % colors.size
+        return colors[index].mix(colors[nextIndex], t)
+    }
 
     // Einstellungen für den Look
     var lineCount = 60 // Anzahl der Linien
@@ -17,12 +39,15 @@ class NeonInterferenceScene : Scene() {
         drawer.strokeWeight = lineWeight
         drawer.fill = null // Keine Füllung, nur Linien
 
+        val currentColorStart = getColorStart(time)
+        val currentColorEnd = getColorEnd(time)
+
         for (i in 0 until lineCount) {
             // Normierte Werte (0.0 bis 1.0)
             val iNorm = i.toDouble() / lineCount
             
             // Farbe mischen basierend auf Index
-            drawer.stroke = colorStart.mix(colorEnd, iNorm)
+            drawer.stroke = currentColorStart.mix(currentColorEnd, iNorm)
 
             val points = mutableListOf<Vector2>()
             
