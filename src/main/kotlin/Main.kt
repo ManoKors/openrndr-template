@@ -8,6 +8,7 @@ fun main() = application {
         width = Config.WIDTH
         height = Config.HEIGHT
         title = Config.TITLE
+        windowResizable = true
     }
 
     program {
