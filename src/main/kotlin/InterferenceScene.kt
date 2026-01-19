@@ -10,8 +10,8 @@ class InterferenceScene {
     private val colorEnd = ColorRGBa.fromHex("EBFF00")   // Neon Gelb
 
     // Einstellungen für den Look
-    var lineCount = 80
-    var lineWeight = 3.0 // Etwas dünner sieht meist edler aus
+    var lineCount = 60 // Anzahl der Linien
+    var lineWeight = 1.0 // Noch dicker
     
     fun draw(drawer: Drawer, time: Double, bassEnergy: Double, width: Int, height: Int) {
         drawer.strokeWeight = lineWeight
@@ -27,8 +27,8 @@ class InterferenceScene {
             val points = mutableListOf<Vector2>()
             
             // Punkte für die Linie berechnen
-            // step 10 reicht für Performance, step 5 wäre glatter
-            for (x in 0..width step 10) {
+            // step 2 für noch glattere Linien
+            for (x in 0..width step 2) {
                 val xNorm = x.toDouble() / width
                 
                 // Die Mathematik ausgelagert in eine Funktion (siehe unten)
@@ -54,7 +54,7 @@ class InterferenceScene {
         val twist = cos(x * 5.0 + time)
         
         // Amplitude (Wie hoch die Welle ist)
-        val spread = 100.0 + energy * 0.5
+        val spread = 100.0 + energy * 2.5
         
         return (baseWave * interference * twist) * spread
     }
