@@ -1,242 +1,112 @@
 import org.openrndr.application
 import org.openrndr.color.ColorRGBa
 import org.openrndr.draw.*
-import org.openrndr.extra.camera.OrbitalCamera
 import org.openrndr.extra.fx.blur.Bloom
 import org.openrndr.extra.minim.minim
-import org.openrndr.extra.noise.perlin
-import org.openrndr.math.Vector3
-import org.openrndr.math.map
-import org.openrndr.Keyboard
+import org.openrndr.math.Vector2
 import ddf.minim.analysis.FFT
-import kotlin.math.abs
+import ddf.minim.Minim
+import kotlin.math.PI
 import kotlin.math.sin
+import kotlin.math.cos
 
 fun main() = application {
     configure {
         width = 1920
         height = 1080
-        title = "Neon Horizon: Ultimate Edition"
-        windowResizable = true
+        title = "Neon Interference"
     }
 
     program {
-        // --- 1. AUDIO SETUP ---
         val minim = minim()
-        // Nutzt Mikrofon/System-Mix. Für MP3: minim.loadFile("pfad.mp3")
+        // Audio File Input
         val player = minim.loadFile("data/audio/track.mp3")
         player.play()
-        player.mute()  // Start muted
+        // player.mute()  // Entfernt, damit Audio spielt und FFT Daten hat
         val fft = FFT(player.bufferSize(), player.sampleRate())
 
-        // Templates und Parameter
-        var currentTemplate = "Wave"
-        var waveSpeed = 0.4
-        var waveScale = 15.0
-        var bassMultiplier = 0.01
+        // Bloom für den Neon-Effekt (wie im Bild)
+        val bloom = Bloom().apply {
+            brightness = 0.0
+        }
 
-        // --- 2. GRAFIK SETUP (BUFFERS) ---
-        // Wir rendern in ein Offscreen-Target, um Bloom anwenden zu können
-        val mainTarget = renderTarget(width, height) {
+        val offscreen = renderTarget(width, height) {
             colorBuffer()
             depthBuffer()
         }
 
-        // FX: Bloom Setup (Das Glühen)
-        val bloom = Bloom().apply {
-            brightness = 0.1 // Schwelle: Alles was dunkler ist, glüht nicht
-            // sigma = 20.0     // Streuung: Wie breit das Glühen ist
-            // gain = 2.0       // Stärke: Wie hell es ist
-        }
+        // Farben aus deinem Bild (Grün zu Gelb Verlauf)
+        val neonGreen = ColorRGBa.fromHex("00FF41")
+        val neonYellow = ColorRGBa.fromHex("EBFF00")
 
-        // Kamera: Tief und nah am Boden
-        val cam = OrbitalCamera(Vector3(0.0, 20.0, 150.0), Vector3(0.0, 10.0, 0.0), 90.0, 0.1, 1000.0)
+        var smoothedBass = 0.0
+        var smoothedHighs = 0.0
 
-        // Grid Einstellungen
-        val cols = 60
-        val rows = 50
-        val cellW = 15.0
-        val cellD = 15.0
-        
-        // Farben definieren
-        val deepPurple = ColorRGBa.fromHex("120024")
-        val neonPink = ColorRGBa.fromHex("FF007F")
-        val neonCyan = ColorRGBa.fromHex("00FFFF")
-        val sunColorTop = ColorRGBa.fromHex("FFD700") // Gold
-        val sunColorBot = ColorRGBa.fromHex("FF007F") // Pink
-
-        var isMuted = true  // Track mute status
-
-        extend(cam)
         extend {
-            // Audio Update
             fft.forward(player.mix)
 
-            // Bass Energie berechnen (0 - 150Hz)
-            val bass = fft.calcAvg(0f, 150f) * 10.0
+            // Audio Smoothing
+            smoothedBass = smoothedBass * 0.9 + (fft.calcAvg(0f, 100f) * 100.0) * 0.1
+            smoothedHighs = smoothedHighs * 0.9 + (fft.calcAvg(1000f, 5000f) * 100.0) * 0.1
             
-            // Zeit für Meer-Bewegung (langsamer für smooth)
-            val time = seconds * waveSpeed
+            // Debug: Setze smoothedBass auf einen festen Wert, um zu testen
+            smoothedBass = 50.0
+            
+            val time = seconds * 0.5
 
-            // Tastensteuerung für Mute und Templates und Einstellungen
-            keyboard.keyDown.listen {
-                when (it.name) {
-                    "m", "M" -> {
-                        isMuted = !isMuted
-                        if (isMuted) player.mute() else player.unmute()
+            drawer.isolatedWithTarget(offscreen) {
+                drawer.clear(ColorRGBa.BLACK)
+                
+                // Wir zeichnen viele Linien übereinander
+                // In deinem Bild sind es feine Linien, die sich kreuzen
+                
+                val lines = 80 // Anzahl der Linien
+                drawer.strokeWeight = 3.0 
+                drawer.fill = null
+
+                // Test: Zeichne eine rote Linie in der Mitte
+                drawer.stroke = ColorRGBa.RED
+                drawer.lineSegment(0.0, height / 2.0, width.toDouble(), height / 2.0)
+
+                // Loop für das Netz
+                for (i in 0 until lines) {
+                    // Verlauf von Grün nach Gelb basierend auf Index i
+                    drawer.stroke = neonGreen.mix(neonYellow, i / lines.toDouble())
+
+                    val points = mutableListOf<Vector2>()
+                    
+                    // Wir zeichnen die Linie über die Breite des Schirms
+                    for (x in 0..width step 10) {
+                        val xNorm = x.toDouble() / width
+                        val iNorm = i.toDouble() / lines
+                        
+                        // --- DIE MATHE MAGIE ---
+                        // 1. Basis-Welle (groß und langsam)
+                        val baseWave = sin(xNorm * 10.0 + time + iNorm * 2.0) 
+                        
+                        // 2. Interferenz-Welle (schneller, reagiert auf Bass)
+                        // Bass verändert die Amplitude (Höhe) und Frequenz
+                        val interference = sin(xNorm * (20.0 + smoothedBass * 0.1) - time * 2.0 + iNorm * 5.0)
+
+                        // 3. Twist (dreht die Wellen ineinander)
+                        val twist = cos(xNorm * 5.0 + time)
+
+                        // Position berechnen
+                        val yBase = height / 2.0
+                        
+                        // Wie weit die Wellen ausschlagen (Spread)
+                            val spread = 100.0 + smoothedBass * 0.5
+                        val y = yBase + (baseWave * interference * twist) * spread
+                        
+                        points.add(Vector2(x.toDouble(), y))
                     }
-                    "1" -> currentTemplate = "Wave"
-                    "2" -> currentTemplate = "Circles"
-                    // Einstellungen für Wave
-                    "q" -> waveSpeed = (waveSpeed + 0.1).coerceAtMost(2.0)
-                    "a" -> waveSpeed = (waveSpeed - 0.1).coerceAtLeast(0.1)
-                    "w" -> waveScale = (waveScale + 5.0).coerceAtMost(50.0)
-                    "s" -> waveScale = (waveScale - 5.0).coerceAtLeast(5.0)
-                    "e" -> bassMultiplier = (bassMultiplier + 0.01).coerceAtMost(0.1)
-                    "d" -> bassMultiplier = (bassMultiplier - 0.01).coerceAtLeast(0.001)
+                    drawer.lineStrip(points)
                 }
             }
 
-            // --- 3. RENDERING START ---
-            drawer.isolatedWithTarget(mainTarget) {
-                if (currentTemplate == "Wave") {
-                    drawer.clear(deepPurple) // Hintergrundfarbe
-                    drawer.depthWrite = true
-                    drawer.depthTestPass = DepthTestPass.LESS_OR_EQUAL
-
-                    // A. DIE SONNE (Hintergrund)
-                    drawer.isolated {
-                        drawer.defaults() // Kamera resetten für 2D Hintergrund-Elemente
-                        
-                        // Sonne Position (fest im Hintergrund)
-                        val sunX = width / 2.0
-                        val sunY = height / 3.0
-                        val sunRadius = 150.0
-
-                        // 1. Reflexion der Sonne (Unscharf auf dem Boden)
-                        // Wir zeichnen ein gestrecktes Oval unter der Sonne
-                        drawer.shadeStyle = shadeStyle {
-                            fragmentTransform = """
-                                vec2 pos = c_boundsPosition.xy;
-                                float alpha = 1.0 - smoothstep(0.0, 1.0, abs(pos.y - 0.5) * 2.0);
-                                x_fill.a *= alpha * 0.3; // 30% Transparenz
-                            """.trimIndent()
-                        }
-                        drawer.fill = neonPink
-                        drawer.stroke = null
-                        // Gespiegelte Sonne, vertikal gestreckt
-                        drawer.rectangle(sunX - sunRadius * 1.5 / 2, sunY + sunRadius + 50.0 - sunRadius * 3.0 / 2, sunRadius * 1.5, sunRadius * 3.0) 
-
-                        // 2. Die eigentliche Sonne
-                        drawer.shadeStyle = shadeStyle {
-                            // Shader für den Farbverlauf + Scanlines (Jalousien)
-                            fragmentTransform = """
-                                vec2 uv = c_boundsPosition.xy;
-                                // Verlauf von Gelb (oben) zu Pink (unten)
-                                vec4 c = mix(p_colBot, p_colTop, uv.y);
-                                
-                                // Scanlines: Schneide Streifen aus
-                                float stripes = smoothstep(0.0, 0.1, sin(uv.y * 40.0 + 1.0) - 0.2);
-                                
-                                // Mache die unteren Streifen dicker
-                                if(uv.y < 0.5) {
-                                    stripes *= smoothstep(0.0, 1.0, uv.y * 2.0);
-                                }
-                                
-                                x_fill = c;
-                                x_fill.a *= stripes; 
-                            """.trimIndent()
-                            parameter("colTop", sunColorTop)
-                            parameter("colBot", sunColorBot)
-                        }
-                        drawer.rectangle(sunX - sunRadius, sunY - sunRadius, sunRadius * 2.0, sunRadius * 2.0)
-                    }
-
-                    // B. DAS GITTER (NEXT GEN WATER PHYSICS)
-                    drawer.shadeStyle = null // Reset Shader
-                    drawer.translate(-cols * cellW / 2.0, -10.0, -rows * cellD / 2.0) // Grid zentrieren
-
-                    // Linien zeichnen
-                    drawer.strokeWeight = 1.5
-                    
-                    for (z in 0 until rows) {
-                        // Wir berechnen die Vertices für einen "Strip"
-                        // Wir nutzen LINE_STRIP damit es zusammenhängend ist
-                        
-                        // Farbe faden: Vorne Hell, hinten Dunkel (Nebel-Effekt)
-                        val depthAlpha = map(0.0, rows.toDouble(), 1.0, 0.0, z.toDouble())
-                        drawer.stroke = neonCyan.opacify(depthAlpha)
-
-                        // Horizontale Linien (über X)
-                        val points = mutableListOf<Vector3>()
-                        for (x in 0 until cols) {
-                            val px = x * cellW
-                            val pz = z * cellD
-                            
-                            // Meer-artige Perlin-Noise
-                            val noiseH = perlin(0, x * 0.05, z * 0.05 + time * 0.2) * waveScale
-                            
-                            // Audio Reaktivität: Bass skaliert die Wellen, Grundlinie bleibt konstant
-                            val scale = 1.0 + bass * bassMultiplier
-
-                            val py = noiseH * scale
-
-                            points.add(Vector3(px, py, pz))
-                        }
-                        drawer.lineStrip(points)
-                    }
-
-                    // Vertikale Linien (Längsstreifen) - optional für den kompletten Gitter-Look
-                    // Wir zeichnen sie etwas transparenter
-                    drawer.stroke = neonCyan.opacify(0.3)
-                    for (x in 0 until cols step 2) { // Nur jede 2. Linie für Style
-                        val points = mutableListOf<Vector3>()
-                        for (z in 0 until rows) {
-                            val px = x * cellW
-                            val pz = z * cellD
-                            
-                            // Meer-artige Perlin-Noise
-                            val noiseH = perlin(0, x * 0.05, z * 0.05 + time * 0.2) * waveScale
-                            
-                            // Audio Reaktivität: Bass skaliert die Wellen, Grundlinie bleibt konstant
-                            val scale = 1.0 + bass * bassMultiplier
-
-                            val py = noiseH * scale
-                            
-                            points.add(Vector3(px, py, pz))
-                        }
-                        drawer.lineStrip(points)
-                    }
-                } else if (currentTemplate == "Circles") {
-                    drawer.clear(ColorRGBa.BLACK)
-                    drawer.defaults()
-                    
-                    // Einfache Kreise mit Audio
-                    drawer.stroke = ColorRGBa.CYAN
-                    drawer.fill = ColorRGBa.CYAN.opacify(0.3)
-                    for (i in 0..10) {
-                        val radius = 50.0 + bass * (i + 1) * 5.0
-                        drawer.circle(width / 2.0, height / 2.0, radius)
-                    }
-                }
-            }
-            
-            // --- 4. POST PROCESSING ---
-            bloom.apply(mainTarget.colorBuffer(0), mainTarget.colorBuffer(0))
-            
-            // --- 5. FINALE AUSGABE ---
-            drawer.defaults()
-            drawer.image(mainTarget.colorBuffer(0))
-
-            // Einstellungen Anzeige
-            drawer.fill = ColorRGBa.WHITE
-            drawer.text("Template: $currentTemplate", 10.0, 20.0)
-            if (currentTemplate == "Wave") {
-                drawer.text("Wave Speed: ${"%.1f".format(waveSpeed)} (Q/A)", 10.0, 40.0)
-                drawer.text("Wave Scale: ${"%.0f".format(waveScale)} (W/S)", 10.0, 60.0)
-                drawer.text("Bass Multiplier: ${"%.3f".format(bassMultiplier)} (E/D)", 10.0, 80.0)
-            }
-            drawer.text("Mute: $isMuted (M)", 10.0, 100.0)
+            // Bloom anwenden (temporär deaktiviert zum Testen)
+            // bloom.apply(offscreen.colorBuffer(0), offscreen.colorBuffer(0))
+            drawer.image(offscreen.colorBuffer(0))
         }
     }
 }
