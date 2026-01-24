@@ -70,16 +70,16 @@ class NeonInterferenceScene : Scene() {
     // Die reine Mathematik-Formel isoliert -> einfacher zu ändern!
     private fun calculateInterference(x: Double, i: Double, time: Double, energy: Double): Double {
         // 1. Große langsame Welle
-        val baseWave = sin(x * 10.0 + time + i * 2.0)
+        val baseWave = sin(x * 10.0 + time * 1.0 + i * 2.0)
         
-        // 2. Schnelle Welle (Reagiert auf Musik)
-        val interference = sin(x * (20.0 + energy * 0.1) - time * 2.0 + i * 5.0)
+        // 2. Schnelle Welle (Reagiert auf Musik, minimal)
+        val interference = sin(x * (20.0 + energy * 0.01) - time * 1.2 + i * 5.0)
         
         // 3. Verdrehung
-        val twist = cos(x * 5.0 + time)
+        val twist = cos(x * 5.0 + time * 1.0)
         
-        // Amplitude (Wie hoch die Welle ist)
-        val spread = 100.0 + energy * 2.5
+        // Amplitude (Wie hoch die Welle ist, weniger stark)
+        val spread = 100.0 + energy * 1.0
         
         return (baseWave * interference * twist) * spread
     }

@@ -3,6 +3,7 @@ import org.openrndr.color.ColorRGBa
 import org.openrndr.draw.*
 import org.openrndr.extra.fx.blur.Bloom
 import Scene
+import FrutigerAeroScene
 
 class Settings {
     var sceneName = "neon interference"
@@ -25,7 +26,8 @@ fun main() = application {
 
         val scene: Scene = when (settings.sceneName) {
             "neon interference" -> NeonInterferenceScene()
-            else -> NeonInterferenceScene() // Default
+            "frutiger aero" -> FrutigerAeroScene()
+            else -> FrutigerAeroScene() // Default
         }
 
         // Grafik-Setup
