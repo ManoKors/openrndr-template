@@ -11,6 +11,7 @@ class AudioEngine {
     
     // Öffentliche Werte, auf die wir zugreifen wollen
     var smoothedBass = 0.0
+    var smoothedMids = 0.0
     var smoothedHighs = 0.0
 
     fun setup(program: Program) {
@@ -28,11 +29,13 @@ class AudioEngine {
 
         // Werte berechnen
         val rawBass = fft.calcAvg(0f, 100f) * 100.0
+        val rawMids = fft.calcAvg(100f, 1000f) * 100.0
         val rawHighs = fft.calcAvg(1000f, 5000f) * 100.0
 
-        // Smoothing (99.5% alter Wert, 0.5% neuer Wert für maximal zuckelfreie Reaktion)
-        smoothedBass = smoothedBass * 0.995 + rawBass * 0.005
-        smoothedHighs = smoothedHighs * 0.995 + rawHighs * 0.005
+        // Smoothing (99.8% alter Wert, 0.2% neuer Wert für extrem ruckelfrei)
+        smoothedBass = (smoothedBass * 0.998 + rawBass * 0.002).coerceAtMost(80.0)
+        smoothedMids = (smoothedMids * 0.998 + rawMids * 0.002).coerceAtMost(80.0)
+        smoothedHighs = (smoothedHighs * 0.998 + rawHighs * 0.002).coerceAtMost(80.0)
         
         // DEBUG: Uncomment, wenn du ohne Musik testen willst
         // smoothedBass = 50.0 

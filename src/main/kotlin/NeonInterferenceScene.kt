@@ -35,7 +35,7 @@ class NeonInterferenceScene : Scene() {
     var lineCount = 60 // Anzahl der Linien
     var lineWeight = 1.0 // Noch dicker
     
-    override fun draw(drawer: Drawer, time: Double, bassEnergy: Double, width: Int, height: Int) {
+    override fun draw(drawer: Drawer, time: Double, bassEnergy: Double, midEnergy: Double, highEnergy: Double, width: Int, height: Int) {
         drawer.strokeWeight = lineWeight
         drawer.fill = null // Keine Füllung, nur Linien
 
