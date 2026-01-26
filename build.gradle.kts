@@ -48,6 +48,8 @@ val orxFeatures = setOf<String>(
     "orx-minim",
     "orx-no-clear",
     "orx-noise",
+    "orx-obj-loader",
+    "orx-shade-styles",
 //  "orx-obj-loader",
     "orx-olive",
 //  "orx-osc",
