@@ -96,6 +96,7 @@ class Hypnotic3DScene : Scene() {
             // Parameterübergabe
             parameter("time", time)
             parameter("bass", bassEnergy) // Helligkeit bei Bass
+            parameter("mid", midEnergy)   // Für Mid-Laser
             parameter("high", highEnergy) // Farbeffekte bei Höhen
             
             // Farben definieren
@@ -110,29 +111,39 @@ class Hypnotic3DScene : Scene() {
                 // Licht kommt von vorne (vec3(0,0,1))
                 float light = max(dot(n, vec3(0.0, 0.0, 1.0)), 0.1);
                 
-                // 2. Scan-Position berechnen
-                // Der Laser fährt hoch und runter (Sinus-Welle)
-                // Die '15.0' bestimmt, wie weit er fährt (-15 bis +15 auf der Y-Achse)
-                // Falls der Laser verschwindet, ändere diese Zahl!
-                float scanPos = sin(p_time * 1.5) * 15.0; 
+                // 2. Mehrere Laser-Scans (Audio-reaktiv)
+                // Bass-Laser: Rot
+                float speedBass = 1.0 + p_bass * 2.0;
+                float rangeBass = 40.0 + p_bass * 20.0;
+                float scanPosBass = sin(p_time * speedBass) * rangeBass;
+                float distBass = abs(va_position.y - scanPosBass);
+                float beamBass = smoothstep(0.5, 0.0, distBass); // Schärfer für smoother
                 
-                // Abstand dieses Pixels zur Laser-Linie
-                float dist = abs(va_position.y - scanPos);
+                // Mid-Laser: Grün
+                float speedMid = 1.2 + p_mid * 2.5;
+                float rangeMid = 42.0 + p_mid * 25.0;
+                float scanPosMid = sin(p_time * speedMid + 2.094) * rangeMid; // Phasenverschiebung
+                float distMid = abs(va_position.y - scanPosMid);
+                float beamMid = smoothstep(0.5, 0.0, distMid);
                 
-                // 3. Laser-Strahl zeichnen
-                // smoothstep(Breite, 0.0, dist) -> Je kleiner die erste Zahl, desto schärfer der Laser
-                float beam = smoothstep(1.2, 0.0, dist); 
+                // High-Laser: Blau
+                float speedHigh = 1.4 + p_high * 3.0;
+                float rangeHigh = 44.0 + p_high * 30.0;
+                float scanPosHigh = sin(p_time * speedHigh + 4.188) * rangeHigh; // Phasenverschiebung
+                float distHigh = abs(va_position.y - scanPosHigh);
+                float beamHigh = smoothstep(0.5, 0.0, distHigh);
                 
-                // 4. Audio-Reaktion
-                float bassGlow = p_bass * 1.5; // Körper leuchtet bei Bass auf
-                float highFlash = p_high * 2.0; // Laser blitzt weiß bei Höhen
+                // 3. Audio-Reaktion für Blitze
+                float highBoost = 1.0 + p_high * 2.0; // Verstärkung bei Höhen
                 
-                // 5. Farben mischen
-                vec3 bodyColor = p_colorBody.rgb * light;
-                bodyColor += p_colorBody.rgb * bassGlow * 0.3; // Leichter Glow auf dem Körper
+                // 4. Farben mischen
+                vec3 bodyColor = p_colorBody.rgb * light; // Kein zusätzlicher Glow, um Verfärbung zu vermeiden
                 
-                vec3 laserColor = p_colorLaser.rgb * beam * 2.5; // Laser ist sehr hell
-                laserColor += vec3(highFlash) * beam; // Weißer Blitz im Laser
+                // Laser-Farben additiv kombinieren
+                vec3 laserColor = vec3(0.0);
+                laserColor += beamBass * vec3(1.0, 0.0, 0.0) * highBoost; // Rot für Bass, verstärkt bei Höhen
+                laserColor += beamMid * vec3(0.0, 1.0, 0.0) * highBoost;  // Grün für Mids, verstärkt bei Höhen
+                laserColor += beamHigh * vec3(0.0, 0.0, 1.0) * highBoost; // Blau für Highs, verstärkt bei Höhen
                 
                 // Finale Farbe
                 x_fill = vec4(bodyColor + laserColor, 1.0);
@@ -141,7 +152,7 @@ class Hypnotic3DScene : Scene() {
 
         // --- 4. ZEICHNEN (Deine funktionierende Ausrichtung) ---
         drawer.isolated {
-            drawer.scale(1.0) 
+            drawer.scale(3.0)  // Objekt größer machen
             // Rotation beibehalten, da dein Modell so perfekt steht
             drawer.rotate(Vector3.UNIT_X, -90.0)
 
