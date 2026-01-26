@@ -27,14 +27,14 @@ class Settings {
     var autoSceneChange = true
 
     // 3D Camera Controls
-    @DoubleParameter("Eye X", -20.0, 20.0)
-    var eyeX = 0.017
+    @DoubleParameter("Eye X", -500.0, 500.0)
+    var eyeX = 0.0
 
-    @DoubleParameter("Eye Y", -20.0, 20.0)
-    var eyeY = -10.0
+    @DoubleParameter("Eye Y", -500.0, 500.0)
+    var eyeY = 0.0
 
-    @DoubleParameter("Eye Z", -20.0, 20.0)
-    var eyeZ = 1.381
+    @DoubleParameter("Eye Z", -500.0, 500.0)
+    var eyeZ = 300.0
 }
 
 fun main() = application {

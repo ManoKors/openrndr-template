@@ -1,206 +1,151 @@
 import org.openrndr.application
 import org.openrndr.color.ColorRGBa
 import org.openrndr.draw.*
-import org.openrndr.extra.camera.OrbitalCamera
 import org.openrndr.extra.objloader.loadOBJ
 import org.openrndr.math.Vector3
 import org.openrndr.math.transforms.lookAt
+import kotlin.math.cos
+import kotlin.math.sin
 
 class Hypnotic3DScene : Scene() {
 
-    // Wir speichern das fertige Mesh hier, wenn es gebaut ist
     private var mesh: VertexBuffer? = null
     private var hasTriedLoading = false
 
-    // Berechnete Modell-Infos zum Zentrieren / Kameraposition
-    private var meshCenter: Vector3? = null
-    private var meshRadius = 1.0
-
     override fun draw(drawer: Drawer, time: Double, bassEnergy: Double, midEnergy: Double, highEnergy: Double, width: Int, height: Int) {
 
-        // --- 1. LADE- UND BAU-PHASE ---
+        // --- 1. LADE-LOGIK (Unverändert & Robust) ---
         if (!hasTriedLoading && mesh == null) {
             hasTriedLoading = true
             try {
-                println("--- VERSUCHE DATEI ZU PARSEN (MIT QUAD-SUPPORT) ---")
                 val rawGroups = loadOBJ("data/models/7of9.obj")
                 val allFaces = rawGroups.values.flatten()
                 
                 if (allFaces.isNotEmpty()) {
-                    println("GEFUNDEN: ${'$'}{allFaces.size} Roh-Flächen.")
-
-                    // 1. ZÄHLEN: Wie viel Platz brauchen wir wirklich?
+                    // Sammle alle Positionen, um den Mittelpunkt zu berechnen
+                    val allPositions = mutableListOf<Vector3>()
+                    for (face in allFaces) {
+                        allPositions.addAll(face.positions)
+                    }
+                    
+                    // Berechne den Mittelpunkt
+                    val center = if (allPositions.isNotEmpty()) {
+                        val sum = allPositions.reduce { acc, vec -> acc + vec }
+                        sum / allPositions.size.toDouble()
+                    } else {
+                        Vector3.ZERO
+                    }
+                    
                     var vertexCount = 0
                     for (face in allFaces) {
-                        if (face.positions.size == 4) vertexCount += 6
-                        else vertexCount += 3
+                        if (face.positions.size == 4) vertexCount += 6 else vertexCount += 3
                     }
 
-                    println("BENÖTIGTER SPEICHER: ${'$'}vertexCount Vertices.")
-
-                    // 2. BUFFER ERSTELLEN
                     val vFormat = vertexFormat {
                         position(3)
                         normal(3)
                     }
                     mesh = vertexBuffer(vFormat, vertexCount)
 
-                    // 3. DATEN SCHREIBEN (MIT QUAD-SPLIT)
-                    // bounding box init
-                    var minX = Double.POSITIVE_INFINITY
-                    var minY = Double.POSITIVE_INFINITY
-                    var minZ = Double.POSITIVE_INFINITY
-                    var maxX = Double.NEGATIVE_INFINITY
-                    var maxY = Double.NEGATIVE_INFINITY
-                    var maxZ = Double.NEGATIVE_INFINITY
-
                     mesh?.put {
                         for (face in allFaces) {
                             val pos = face.positions
-                            // A. Normale berechnen (für das erste Dreieck)
-                            val p0 = pos.getOrElse(0) { Vector3.ZERO }
-                            val p1 = pos.getOrElse(1) { Vector3.ZERO }
-                            val p2 = pos.getOrElse(2) { Vector3.ZERO }
+                            val p0 = pos.getOrElse(0) { Vector3.ZERO } - center
+                            val p1 = pos.getOrElse(1) { Vector3.ZERO } - center
+                            val p2 = pos.getOrElse(2) { Vector3.ZERO } - center
+                            var normal = (p1 - p0).cross(p2 - p0).normalized
+                            if (normal.x.isNaN()) normal = Vector3.UNIT_Y
 
-                            val edge1 = p1 - p0
-                            val edge2 = p2 - p0
-                            var normal = edge1.cross(edge2).normalized
-                            if (normal.x.isNaN() || normal.y.isNaN() || normal.z.isNaN()) normal = Vector3.UNIT_Y
-
-                            // helper to update bbox and write a point
                             fun writePoint(index: Int) {
-                                val v = pos.getOrElse(index) { Vector3.ZERO }
-                                if (v.x < minX) minX = v.x
-                                if (v.y < minY) minY = v.y
-                                if (v.z < minZ) minZ = v.z
-                                if (v.x > maxX) maxX = v.x
-                                if (v.y > maxY) maxY = v.y
-                                if (v.z > maxZ) maxZ = v.z
-                                write(v)
+                                val centeredPos = pos.getOrElse(index) { Vector3.ZERO } - center
+                                write(centeredPos)
                                 write(normal)
                             }
 
-                            // B. erstes Dreieck
-                            writePoint(0)
-                            writePoint(1)
-                            writePoint(2)
-
-                            // C. falls Viereck: zweites Dreieck 0,2,3
+                            writePoint(0); writePoint(1); writePoint(2)
                             if (pos.size == 4) {
-                                writePoint(0)
-                                writePoint(2)
-                                writePoint(3)
+                                writePoint(0); writePoint(2); writePoint(3)
                             }
                         }
                     }
-
-                    // center + radius
-                    val cx = (minX + maxX) / 2.0
-                    val cy = (minY + maxY) / 2.0
-                    val cz = (minZ + maxZ) / 2.0
-                    meshCenter = Vector3(cx, cy, cz)
-                    val dx = maxX - minX
-                    val dy = maxY - minY
-                    val dz = maxZ - minZ
-                    val maxDim = maxOf(dx, dy, dz)
-                    meshRadius = (maxDim / 2.0).coerceAtLeast(0.0001)
-
-                    println("ERFOLG: Mesh sauber trianguliert und gebaut! center=${'$'}{meshCenter} radius=${'$'}meshRadius")
-                }
-
+                } 
             } catch (e: Exception) {
-                println("CRASH BEIM LADEN: ${'$'}{e.message}")
-                e.printStackTrace()
+                println("Ladefehler: ${'$'}{e.message}")
             }
         }
+
+        if (mesh == null) return
 
         drawer.clear(ColorRGBa.fromHex("050510"))
 
-        // --- DER FIX FÜR DURCHSICHTIGE OBJEKTE ---
-        // 1. Tiefen-Check einschalten: "Ist da schon was?"
-        drawer.depthTestPass = DepthTestPass.LESS_OR_EQUAL
-        // 2. Tiefen-Schreiben einschalten: "Merk dir, dass hier jetzt was ist!"
-        drawer.depthWrite = true
-        // 3. Misch-Modus normalisieren: Keine Transparenz oder Additives Leuchten
-        drawer.drawStyle.blendMode = BlendMode.BLEND
-        // 4. Rückseiten ausblenden (verhindert, dass man ins Innere guckt)
-        drawer.drawStyle.cullTestPass = CullTestPass.FRONT
-
-        // ------------------------------------------
-
-        // --- ERROR SCREEN ---
-        if (mesh == null) {
-            drawer.fill = ColorRGBa.RED
-            drawer.text("LOADING FAILED - SEE CONSOLE", 10.0, 30.0)
-            return
-        }
-
-        // --- 2. SETUP & RENDER ---
+        // --- 2. RENDER SETTINGS ---
         drawer.perspective(60.0, width.toDouble() / height, 0.1, 1000.0)
         drawer.depthWrite = true
         drawer.depthTestPass = DepthTestPass.LESS_OR_EQUAL
-        drawer.drawStyle.cullTestPass = CullTestPass.FRONT 
+        drawer.drawStyle.cullTestPass = CullTestPass.BACK 
 
-        // Kamera: wenn wir meshCenter haben, zentrieren und positioniere die Kamera passend
-        val center = meshCenter ?: Vector3.ZERO
-        val camEye = if (Scene.cameraEye == Vector3.ZERO) {
-            // Positioniere die Kamera auf der Z-Achse oberhalb des Modells
-            Vector3(center.x, center.y, center.z + meshRadius * 2.5)
-        } else Scene.cameraEye
-        drawer.view = org.openrndr.math.transforms.lookAt(camEye, center, Vector3.UNIT_Y)
+        // Kamera (Bewegte Kamera für Drehen und Zoomen)
+        val radius = 200.0 + sin(time * 0.2) * 100.0  // Radius variiert für Zoom-Effekt
+        val height = 150.0 + sin(time * 0.1) * 50.0   // Höhe variiert
+        val angle = time * 0.5  // Drehgeschwindigkeit
+        Scene.cameraEye = Vector3(cos(angle) * radius, sin(angle) * radius, height)
+        drawer.view = lookAt(Scene.cameraEye, Vector3.ZERO, Vector3.UNIT_Y)
 
-        // --- DER NEUE, SCHÖNE SHADER ---
+        // --- 3. DER LASER SHADER (Hier ist der neue Effekt!) ---
         drawer.shadeStyle = shadeStyle {
-            // Wir übergeben die Zeit für eventuelle Animationen
+            // Parameterübergabe
             parameter("time", time)
-            // Coole Farben definieren (kannst du anpassen!)
-            parameter("topColor", ColorRGBa.fromHex("00FFCC")) // Türkis/Cyan für oben
-            parameter("botColor", ColorRGBa.fromHex("440088")) // Dunkles Lila für unten
+            parameter("bass", bassEnergy) // Helligkeit bei Bass
+            parameter("high", highEnergy) // Farbeffekte bei Höhen
+            
+            // Farben definieren
+            parameter("colorBody", ColorRGBa.fromHex("0088AA")) // Körper: Dunkles Türkis
+            parameter("colorLaser", ColorRGBa.fromHex("FF0055")) // Laser: Neon Pink/Rot
 
             fragmentTransform = """
-                // 1. Wichtige Vektoren holen
-                vec3 n = normalize(va_normal); // Die Ausrichtung der Fläche
-                vec3 viewDir = normalize(vec3(0.0, 0.0, 1.0)); // Blickrichtung der Kamera (vereinfacht)
-                // Licht kommt von oben rechts vorne
-                vec3 lightDir = normalize(vec3(0.5, 0.8, 1.0));
-
-                // 2. Beleuchtung berechnen (Soft Shading)
-                float lightIntensity = max(dot(n, lightDir), 0.15);
-
-                // 3. Farbverlauf basierend auf Höhe (Y-Position)
-                float heightGradient = smoothstep(-10.0, 10.0, va_position.y);
-                vec3 baseColor = mix(p_botColor.rgb, p_topColor.rgb, heightGradient);
-
-                // 4. Extra: "Rim Light" (Kantenglanz von hinten) für 3D-Effekt
-                float rim = 1.0 - max(dot(viewDir, n), 0.0);
-                rim = pow(rim, 4.0) * 0.7;
-                vec3 rimColor = vec3(1.0, 1.0, 1.0) * rim;
-
-                // 5. Alles zusammenmischen
-                x_fill = vec4((baseColor * lightIntensity) + rimColor, 1.0);
+                // Normale holen
+                vec3 n = normalize(va_normal);
+                
+                // 1. Grund-Beleuchtung (damit der Körper plastisch wirkt)
+                // Licht kommt von vorne (vec3(0,0,1))
+                float light = max(dot(n, vec3(0.0, 0.0, 1.0)), 0.1);
+                
+                // 2. Scan-Position berechnen
+                // Der Laser fährt hoch und runter (Sinus-Welle)
+                // Die '15.0' bestimmt, wie weit er fährt (-15 bis +15 auf der Y-Achse)
+                // Falls der Laser verschwindet, ändere diese Zahl!
+                float scanPos = sin(p_time * 1.5) * 15.0; 
+                
+                // Abstand dieses Pixels zur Laser-Linie
+                float dist = abs(va_position.y - scanPos);
+                
+                // 3. Laser-Strahl zeichnen
+                // smoothstep(Breite, 0.0, dist) -> Je kleiner die erste Zahl, desto schärfer der Laser
+                float beam = smoothstep(1.2, 0.0, dist); 
+                
+                // 4. Audio-Reaktion
+                float bassGlow = p_bass * 1.5; // Körper leuchtet bei Bass auf
+                float highFlash = p_high * 2.0; // Laser blitzt weiß bei Höhen
+                
+                // 5. Farben mischen
+                vec3 bodyColor = p_colorBody.rgb * light;
+                bodyColor += p_colorBody.rgb * bassGlow * 0.3; // Leichter Glow auf dem Körper
+                
+                vec3 laserColor = p_colorLaser.rgb * beam * 2.5; // Laser ist sehr hell
+                laserColor += vec3(highFlash) * beam; // Weißer Blitz im Laser
+                
+                // Finale Farbe
+                x_fill = vec4(bodyColor + laserColor, 1.0);
             """.trimIndent()
         }
 
-        // Zeichnen
+        // --- 4. ZEICHNEN (Deine funktionierende Ausrichtung) ---
         drawer.isolated {
-            // Skalierung: Hier anpassen, falls zu groß/klein
-            val scaleFactor = 1.0
-            val center = meshCenter ?: Vector3.ZERO
-
-            // Transformations um das Modellzentrum: translate->scale->rotate->translateBack
-            drawer.translate(center.x, center.y, center.z)
-            drawer.scale(scaleFactor)
-            // Langsame Eigenrotation um Y (zeitbasiert)
-            drawer.rotate(Vector3.UNIT_Y, time * 20.0)
-            // Rotation Fix für OBJ (-90 auf X ist Standard für Blender->OpenRNDR)
+            drawer.scale(1.0) 
+            // Rotation beibehalten, da dein Modell so perfekt steht
             drawer.rotate(Vector3.UNIT_X, -90.0)
-            // Falls sie nach hinten guckt:
-            // drawer.rotate(Vector3.UNIT_Y, 180.0)
-            drawer.translate(-center.x, -center.y, -center.z)
 
-            mesh?.let {
-                drawer.vertexBuffer(it, DrawPrimitive.TRIANGLES)
-            }
+            mesh?.let { drawer.vertexBuffer(it, DrawPrimitive.TRIANGLES) }
         }
     }
 }
