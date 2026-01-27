@@ -16,12 +16,13 @@ enum class SceneType {
     NEON_INTERFERENCE_2,
     HYPNOTIC,
     DREAM_HAZE,
-    HYPNOTIC_3D
+    HYPNOTIC_3D,
+    STONER_3D
 }
 
 class Settings {
     @OptionParameter("Scene")
-    var sceneType = SceneType.NEON_INTERFERENCE
+    var sceneType = SceneType.STONER_3D
 
     @BooleanParameter("Auto Scene Change")
     var autoSceneChange = true
@@ -70,10 +71,10 @@ fun main() = application {
         val audio = AudioEngine()
         audio.setup(this)
 
-        val scenes = listOf(SceneType.AURORA_FLOW, SceneType.NEON_INTERFERENCE, SceneType.NEON_INTERFERENCE_2, SceneType.HYPNOTIC, SceneType.DREAM_HAZE, SceneType.HYPNOTIC_3D)
+        val scenes = listOf(SceneType.AURORA_FLOW, SceneType.NEON_INTERFERENCE, SceneType.NEON_INTERFERENCE_2, SceneType.HYPNOTIC, SceneType.DREAM_HAZE, SceneType.HYPNOTIC_3D, SceneType.STONER_3D)
         var lastSceneChange = 0.0
         var lastSceneType = settings.sceneType
-        var scene: Scene = NeonInterferenceScene() // Initiale Scene
+        var scene: Scene = Stoner3DScene() // Initiale Scene
 
         // Funktion zum Scene-Wechsel
         fun switchToScene(sceneType: SceneType) {
@@ -86,6 +87,7 @@ fun main() = application {
                 SceneType.HYPNOTIC -> HypnoticRadialScene()
                 SceneType.DREAM_HAZE -> DreamHazeScene()
                 SceneType.HYPNOTIC_3D -> Hypnotic3DScene()
+                SceneType.STONER_3D -> Stoner3DScene()
             }
             settings.autoSceneChange = false // Deaktiviere auto bei manuellem Wechsel
         }
