@@ -111,39 +111,50 @@ class Hypnotic3DScene : Scene() {
                 // Licht kommt von vorne (vec3(0,0,1))
                 float light = max(dot(n, vec3(0.0, 0.0, 1.0)), 0.1);
                 
-                // 2. Mehrere Laser-Scans (Audio-reaktiv)
-                // Bass-Laser: Rot
-                float speedBass = 1.0 + p_bass * 2.0;
-                float rangeBass = 40.0 + p_bass * 20.0;
+                // 2. Mehrere Laser-Scans (Audio-reaktiv) - Erweitert um mehr Farben
+                // Bass-Laser: Rot (mit leichtem Blau-Anteil)
+                float speedBass = p_bass * 2.0;  // Keine Mindestgeschwindigkeit, bei Stille still
+                float rangeBass = 40.0 + p_bass * 30.0;
                 float scanPosBass = sin(p_time * speedBass) * rangeBass;
                 float distBass = abs(va_position.y - scanPosBass);
-                float beamBass = smoothstep(0.5, 0.0, distBass); // Schärfer für smoother
+                float beamBass = smoothstep(1.2, 0.0, distBass);
                 
-                // Mid-Laser: Grün
-                float speedMid = 1.2 + p_mid * 2.5;
-                float rangeMid = 42.0 + p_mid * 25.0;
-                float scanPosMid = sin(p_time * speedMid + 2.094) * rangeMid; // Phasenverschiebung
+                // Mid-Laser: Grün (mit leichtem Rot-Anteil)
+                float speedMid = p_mid * 2.5;
+                float rangeMid = 42.0 + p_mid * 35.0;
+                float scanPosMid = sin(p_time * speedMid + 2.094) * rangeMid;
                 float distMid = abs(va_position.y - scanPosMid);
-                float beamMid = smoothstep(0.5, 0.0, distMid);
+                float beamMid = smoothstep(1.2, 0.0, distMid);
                 
-                // High-Laser: Blau
-                float speedHigh = 1.4 + p_high * 3.0;
-                float rangeHigh = 44.0 + p_high * 30.0;
-                float scanPosHigh = sin(p_time * speedHigh + 4.188) * rangeHigh; // Phasenverschiebung
+                // High-Laser: Blau (mit leichtem Grün-Anteil)
+                float speedHigh = p_high * 3.0;
+                float rangeHigh = 44.0 + p_high * 40.0;
+                float scanPosHigh = sin(p_time * speedHigh + 4.188) * rangeHigh;
                 float distHigh = abs(va_position.y - scanPosHigh);
-                float beamHigh = smoothstep(0.5, 0.0, distHigh);
+                float beamHigh = smoothstep(1.2, 0.0, distHigh);
+                
+                // Extra-Laser: Cyan (kombiniert Bass und Highs)
+                float speedExtra = (p_bass + p_high) * 1.5;
+                float rangeExtra = 38.0 + (p_bass + p_high) * 20.0;
+                float scanPosExtra = sin(p_time * speedExtra + 1.047) * rangeExtra;
+                float distExtra = abs(va_position.y - scanPosExtra);
+                float beamExtra = smoothstep(1.2, 0.0, distExtra);
                 
                 // 3. Audio-Reaktion für Blitze
-                float highBoost = 1.0 + p_high * 2.0; // Verstärkung bei Höhen
+                float highBoost = 1.0 + p_high * 6.0;
                 
-                // 4. Farben mischen
-                vec3 bodyColor = p_colorBody.rgb * light; // Kein zusätzlicher Glow, um Verfärbung zu vermeiden
+                // 4. Farben mischen - Erweitert um mehr dynamische Farben
+                vec3 bodyColor = vec3(0.0); // Figur bleibt schwarz für Kontrast
                 
-                // Laser-Farben additiv kombinieren
+                // Zeit-basierte Farbverschiebung für leichte Veränderungen
+                float colorShift = sin(p_time * 0.5) * 0.1 + 0.05; // Leichte Oszillation
+                
+                // Laser-Farben additiv kombinieren (noch krasser und farbenreicher)
                 vec3 laserColor = vec3(0.0);
-                laserColor += beamBass * vec3(1.0, 0.0, 0.0) * highBoost; // Rot für Bass, verstärkt bei Höhen
-                laserColor += beamMid * vec3(0.0, 1.0, 0.0) * highBoost;  // Grün für Mids, verstärkt bei Höhen
-                laserColor += beamHigh * vec3(0.0, 0.0, 1.0) * highBoost; // Blau für Highs, verstärkt bei Höhen
+                laserColor += beamBass * vec3(1.0 + colorShift, 0.0, 0.2 + colorShift) * highBoost * 5.0; // Rot mit Blau-Anteil
+                laserColor += beamMid * vec3(0.0, 1.0 + colorShift, 0.2 + colorShift) * highBoost * 5.0;  // Grün mit Blau-Anteil
+                laserColor += beamHigh * vec3(0.2 + colorShift, 0.0, 1.0 + colorShift) * highBoost * 5.0; // Blau mit Rot-Anteil
+                laserColor += beamExtra * vec3(0.0, 1.0 + colorShift, 1.0 + colorShift) * highBoost * 4.0; // Cyan mit Grün-Anteil
                 
                 // Finale Farbe
                 x_fill = vec4(bodyColor + laserColor, 1.0);
