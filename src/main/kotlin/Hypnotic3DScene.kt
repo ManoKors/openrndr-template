@@ -3,7 +3,9 @@ import org.openrndr.color.ColorRGBa
 import org.openrndr.draw.*
 import org.openrndr.extra.objloader.loadOBJ
 import org.openrndr.math.Vector3
-import org.openrndr.math.transforms.lookAt
+import org.openrndr.math.Matrix44
+import org.openrndr.math.Vector2
+import org.openrndr.math.transforms.*
 import kotlin.math.cos
 import kotlin.math.sin
 
@@ -90,6 +92,43 @@ class Hypnotic3DScene : Scene() {
         val angle = time * 0.5  // Drehgeschwindigkeit
         Scene.cameraEye = Vector3(cos(angle) * radius, sin(angle) * radius, height)
         drawer.view = lookAt(Scene.cameraEye, Vector3.ZERO, Vector3.UNIT_Y)
+
+        // --- HINTERGRUND: Cyber-Grid ---
+        drawer.isolated {
+            // Gitter-Einstellungen
+            val gridSize = 1000.0
+            val lines = 40
+            val spacing = gridSize / lines
+            
+            // Langsame, sanfte Farbänderung im Beat
+            val t = (sin(time * 0.05) + 1.0) / 2.0  // Smooth zwischen 0 und 1
+            val color1 = ColorRGBa.fromHex("0088AA")  // Türkis
+            val color2 = ColorRGBa.fromHex("AA0088")  // Magenta
+            val baseColor = color1.mix(color2, t)
+            val gridColor = baseColor.opacify(0.3 + bassEnergy * 0.5)
+            drawer.stroke = gridColor
+            drawer.strokeWeight = 1.0
+            // Keine Füllung, nur Linien
+            drawer.fill = null
+            // Boden (y = -180) und Decke (y = 150)
+            for (yLevel in listOf(-180.0, 150.0)) {
+                for (i in -lines/2..lines/2) {
+                    val offset = i * spacing
+                    
+                    // Linien entlang der X-Achse
+                    drawer.lineSegment(
+                        Vector3(-gridSize/2, yLevel, offset), 
+                        Vector3(gridSize/2, yLevel, offset)
+                    )
+                    
+                    // Linien entlang der Z-Achse
+                    drawer.lineSegment(
+                        Vector3(offset, yLevel, -gridSize/2), 
+                        Vector3(offset, yLevel, gridSize/2)
+                    )
+                }
+            }
+        }
 
         // --- 3. DER LASER SHADER (Hier ist der neue Effekt!) ---
         drawer.shadeStyle = shadeStyle {
